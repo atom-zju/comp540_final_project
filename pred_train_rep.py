@@ -21,7 +21,7 @@ Pretrained_Files.append('/home/atom/caffe/examples/cifar10/cifar10_full_iter_650
 Pretrained_Files.append('/home/atom/PycharmProjects/cifar10_2/cifar10_full_iter_60000.caffemodel.h5')
 
 Model_File = '/home/atom/PycharmProjects/cifar10_2/cifar10_full.prototxt'
-Image_Path = '/home/atom/cifar10/data/train/'
+Image_Path = '/home/atom/cifar10/data/train_copy/'
 
 # define the mean file paths
 Mean_Files = []
@@ -73,7 +73,7 @@ imageFileNames = sorted(imageFileNames, key=lambda x: int(x.split('.')[0]))
 
 # for imageFileName in imageFileNames:
 #     print imageFileName
-# print "# of entries: ",len(imageFileNames)
+print "# of entries: ",len(imageFileNames)
 
 correct_cnt = 0
 
@@ -89,8 +89,8 @@ for imageFileName in imageFileNames:
     pred_label = labels[pred_rep.argmax()]
     actual_label = my_list[idx][1]
     if pred_label == actual_label:
-        correct_cnt+=1
-    if idx%100==0:
+        correct_cnt += 1
+    if idx%100 == 0:
         print "accuraccy on first ",idx," example is ", float(correct_cnt)/float(idx)
     idx += 1
 pred_file.close()

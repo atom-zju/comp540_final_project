@@ -1,40 +1,30 @@
 import numpy as np
 import utils
-from sklearn import preprocessing
 from sklearn.cluster import KMeans
+from sklearn.svm import SVC
 
-def extract_patches(X, stride=2, w_size=4):
-    N = X.shape[0]
-    K = (X.shape[1]-w_size)/stride + 1
-    chns = X.shape[-1]
-    X_patched = np.zeros((N, K, K, w_size*w_size*chns), dtype=float)
-    # do whitening here
-    for idx in range(N):
-        for i in range(K):
-            for j in range(K):
-                X_patched[idx,i,j,:] = np.reshape(X[idx,i*stride:i*stride+w_size,j*stride:j*stride+w_size,:],(w_size*w_size*chns,))
-                X_patched[idx,i,j,:] = preprocessing.scale(X_patched[idx,i,j,:])
-    return X_patched
 
-def transform_features(X_patched,feature_num=400):
-    X_transformed = np.zeros((X_patched.shape[0],X_patched.shape[1],X_patched.shape[2],feature_num))
+def transform_features(X_patched,feature_num=100):
+    X_transformed = np.zeros((X_patched.shape[0],X_patched.shape[1],X_patched.shape[2],1),dtype=np.uint8)
     total_features = X_patched.shape[0]*X_patched.shape[1]*X_patched.shape[2]
-    features = np.zeros((total_features, X_patched.shape[3]), dtype=float)
+    features = np.zeros((total_features, X_patched.shape[3]), dtype=np.float16)
     global_idx = 0
     for idx in range(X_patched.shape[0]):
         for i in range(X_patched.shape[1]):
             for j in range(X_patched.shape[2]):
                 features[global_idx,:] = X_patched[idx,i,j,:]
                 global_idx += 1
-
-    kmean_classifier = KMeans(n_clusters=feature_num, n_jobs=-1)
+    print "start to do k means"
+    kmean_classifier = KMeans(n_clusters=feature_num, n_jobs=-1, max_iter=100,n_init=3)
     kmean_classifier.fit(features)
+    print "start build x transformed"
+    np.save("centroid",kmean_classifier.cluster_centers_)
 
     for idx in range(X_patched.shape[0]):
         for i in range(X_patched.shape[1]):
             for j in range(X_patched.shape[2]):
                 feature_label = kmean_classifier.predict(X_patched[idx,i,j,:])
-                X_transformed[idx,i,j,feature_label] = 1
+                X_transformed[idx,i,j,:] = feature_label
 
     return X_transformed
 
@@ -49,10 +39,24 @@ for img_idx in range(N):
 y = cifar10_labels
 
 # create feature patches
-print "start to do extraction"
-X_patched = extract_patches(X)
-print "start to do transform"
-X_transformed = transform_features(X_patched)
+# print "start to do extraction"
+# # X_patched = extract_patches(X)
+# # np.save('X_patched',X_patched)
+# X_patched = np.load('X_patched.npy')
+# print X_patched.shape
 
+# print "start to do transform"
+# X_transformed = transform_features(X_patched)
+# np.save('X_transformed',X_transformed)
+
+X_transformed = np.load('X_transformed.npy')
 print X_transformed.shape
+X_transformed = np.reshape(X_transformed, (X_transformed.shape[0],
+                                           X_transformed.shape[1]*X_transformed.shape[2]*X_transformed.shape[3]))
+
+# use SVM(one-vs-rest) to do prediction
+clf = SVC(C=1.0,decision_function_shape='ovr')
+clf.fit(X_transformed,cifar10_labels)
+print "started to do the prediction"
+print clf.score(X_transformed,cifar10_labels)
 
